@@ -64,6 +64,13 @@
       "when": 1778190000000,
       "tag": "0008_alerts_views",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778195000000,
+      "tag": "0009_gold_views",
+      "breakpoints": true
     }
   ]
 }
