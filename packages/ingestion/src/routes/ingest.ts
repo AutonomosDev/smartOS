@@ -21,7 +21,9 @@ ingestRouter.post("/inventario", async (c) => {
     const result = await ingestInventario(buffer, sourceFile);
     return c.json(result, 200);
   } catch (err) {
+    console.error("[ingest_failed]", err);
     const message = err instanceof Error ? err.message : "unknown_error";
-    return c.json({ error: "ingest_failed", detail: message }, 500);
+    const stack = err instanceof Error ? err.stack : undefined;
+    return c.json({ error: "ingest_failed", detail: message, stack }, 500);
   }
 });

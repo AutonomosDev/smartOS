@@ -1,10 +1,24 @@
 import { sql } from "drizzle-orm";
+import { TENANCY } from "../config/tenancy.js";
 import { db } from "../db/client.js";
-import { animales, inventarioBronze } from "../db/schema/index.js";
+import {
+  animales,
+  inventarioBronze,
+  landings,
+} from "../db/schema/index.js";
 import { parseInventarioXlsx } from "../parsers/inventario-xlsx.js";
+import { uploadRaw } from "../storage/gcs.js";
+
+const KIND = "inventario";
+
+function operacionSlug(): string {
+  return TENANCY.operacion.nombre.toLowerCase().replace(/\s+/g, "-");
+}
 
 export type IngestResult = {
   ingestId: string;
+  landingId: string;
+  gcsUri: string;
   sourceFile: string;
   totalRows: number;
   bronzeInserted: number;
@@ -16,28 +30,53 @@ export async function ingestInventario(
   buffer: Buffer,
   sourceFile: string
 ): Promise<IngestResult> {
+  // 0) Landing: subir el archivo CRUDO a GCS antes de tocar nada más.
+  //    Si esto falla, no perdimos data y el cliente recibe error explícito.
+  const operacion = operacionSlug();
+  const meta = await uploadRaw({
+    kind: KIND,
+    operacion,
+    fileName: sourceFile,
+    buffer,
+  });
+
   const parsed = await parseInventarioXlsx(buffer);
 
-  if (parsed.validRows.length === 0) {
-    return {
-      ingestId: "",
-      sourceFile,
-      totalRows: parsed.totalRows,
-      bronzeInserted: 0,
-      silverUpserted: 0,
-      errors: parsed.errors,
-    };
-  }
-
   return await db.transaction(async (tx) => {
-    // 1) Bronze: append todas las filas con un mismo ingest_id
-    const ingestIdRow = await tx.execute<{ ingest_id: string }>(
-      sql`SELECT gen_random_uuid()::text AS ingest_id`
-    );
-    const ingestId = ingestIdRow.rows[0]!.ingest_id;
+    // 1) Insertar landing — define el ingest_id que va a usar Bronze
+    const [landing] = await tx
+      .insert(landings)
+      .values({
+        kind: KIND,
+        operacion,
+        sourceFile,
+        gcsUri: meta.gcsUri,
+        fileSizeBytes: meta.fileSizeBytes,
+        fileMd5: meta.fileMd5,
+        contentType: meta.contentType,
+      })
+      .returning({ id: landings.id, ingestId: landings.ingestId });
 
+    if (!landing) {
+      throw new Error("landing_insert_failed");
+    }
+
+    if (parsed.validRows.length === 0) {
+      return {
+        ingestId: landing.ingestId,
+        landingId: landing.id,
+        gcsUri: meta.gcsUri,
+        sourceFile,
+        totalRows: parsed.totalRows,
+        bronzeInserted: 0,
+        silverUpserted: 0,
+        errors: parsed.errors,
+      };
+    }
+
+    // 2) Bronze: append todas las filas con el ingest_id del landing
     const bronzeValues = parsed.validRows.map((r) => ({
-      ingestId,
+      ingestId: landing.ingestId,
       sourceFile,
       rowNumber: r.rowNumber,
       raw: r.raw,
@@ -54,7 +93,7 @@ export async function ingestInventario(
       bronzeInserted += inserted.length;
     }
 
-    // 2) Silver: upsert por DIIO con los 17 campos
+    // 3) Silver: upsert por DIIO con los 17 campos
     const silverValues = parsed.validRows.map((r) => ({
       diio: r.silver.diio,
       estado: r.silver.estado,
@@ -110,7 +149,9 @@ export async function ingestInventario(
     }
 
     return {
-      ingestId,
+      ingestId: landing.ingestId,
+      landingId: landing.id,
+      gcsUri: meta.gcsUri,
       sourceFile,
       totalRows: parsed.totalRows,
       bronzeInserted,

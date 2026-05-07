@@ -15,6 +15,13 @@
       "when": 1778171956398,
       "tag": "0001_faithful_lyja",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778172526789,
+      "tag": "0002_add_landings",
+      "breakpoints": true
     }
   ]
 }
