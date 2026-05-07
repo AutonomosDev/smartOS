@@ -3,3 +3,5 @@ export * from "./inventario-bronze.js";
 export * from "./landings.js";
 export * from "./pesajes.js";
 export * from "./pesajes-bronze.js";
+export * from "./tratamientos.js";
+export * from "./tratamientos-bronze.js";
