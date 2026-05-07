@@ -36,6 +36,13 @@
       "when": 1778176201473,
       "tag": "0004_add_tratamientos",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778178351726,
+      "tag": "0005_add_ventas",
+      "breakpoints": true
     }
   ]
 }

@@ -5,3 +5,5 @@ export * from "./pesajes.js";
 export * from "./pesajes-bronze.js";
 export * from "./tratamientos.js";
 export * from "./tratamientos-bronze.js";
+export * from "./ventas.js";
+export * from "./ventas-bronze.js";
