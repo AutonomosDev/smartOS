@@ -1,0 +1,19 @@
+{
+  "name": "smartos",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Template multi-vertical para apps con IA — 7 capas estilo Palantir",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "dev": "pnpm -F @smartos/ingestion dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

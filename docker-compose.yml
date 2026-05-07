@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smartos
+      POSTGRES_PASSWORD: smartos
+      POSTGRES_DB: smartos
+    ports:
+      - "54320:5432"
+    volumes:
+      - smartos_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartos -d smartos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  fake-gcs:
+    image: fsouza/fake-gcs-server:1.49.2
+    container_name: smartos-fake-gcs
+    restart: unless-stopped
+    command: ["-scheme", "http", "-port", "4443", "-public-host", "localhost:4443"]
+    ports:
+      - "4443:4443"
+
+volumes:
+  smartos_pg_data:
