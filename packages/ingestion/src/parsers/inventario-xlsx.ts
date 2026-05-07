@@ -1,4 +1,8 @@
 import ExcelJS from "exceljs";
+import {
+  InventarioRowSchema,
+  formatZodError,
+} from "./inventario-schema.js";
 
 /**
  * Mapeo de header literal del xlsx → key normalizada.
@@ -6,7 +10,7 @@ import ExcelJS from "exceljs";
  */
 const HEADER_MAP: Record<string, string> = {
   "Diio": "diio",
-  "Inventario": "inventario",
+  "Inventario": "estado",
   "Fecha nacimiento": "fecha_nacimiento",
   "Tipo ganado": "tipo_ganado",
   "Fundo": "fundo",
@@ -57,37 +61,6 @@ export type ParseResult = {
   errors: { rowNumber: number; reason: string }[];
 };
 
-function toIsoDate(value: unknown): string | null {
-  if (value == null || value === "") return null;
-  if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) return null;
-    return value.toISOString().slice(0, 10);
-  }
-  const d = new Date(String(value));
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString().slice(0, 10);
-}
-
-function toString(value: unknown): string | null {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s === "" ? null : s;
-}
-
-function toNumeric(value: unknown): string | null {
-  if (value == null || value === "") return null;
-  const n = Number(value);
-  if (!Number.isFinite(n)) return null;
-  return n.toFixed(2);
-}
-
-function toInt(value: unknown): number | null {
-  if (value == null || value === "") return null;
-  const n = Number(value);
-  if (!Number.isFinite(n)) return null;
-  return Math.trunc(n);
-}
-
 export async function parseInventarioXlsx(
   buffer: Buffer
 ): Promise<ParseResult> {
@@ -128,39 +101,35 @@ export async function parseInventarioXlsx(
 
     if (!hasAnyValue) continue;
 
-    const diio = toString(raw["diio"]);
-    const estado = toString(raw["inventario"]);
-
-    if (!diio) {
-      errors.push({ rowNumber: r, reason: "DIIO vacío" });
-      continue;
-    }
-    if (!estado) {
-      errors.push({ rowNumber: r, reason: "Estado (Inventario) vacío" });
+    // Validar con Zod — schema canónico
+    const result = InventarioRowSchema.safeParse(raw);
+    if (!result.success) {
+      errors.push({ rowNumber: r, reason: formatZodError(result.error) });
       continue;
     }
 
+    const data = result.data;
     validRows.push({
       rowNumber: r,
       raw,
       silver: {
-        diio,
-        estado,
-        tipoGanado: toString(raw["tipo_ganado"]),
-        fechaNacimiento: toIsoDate(raw["fecha_nacimiento"]),
-        estadoReproductivo: toString(raw["estado_reproductivo"]),
-        estadoLeche: toString(raw["estado_leche"]),
-        ultimoParto: toIsoDate(raw["ultimo_parto"]),
-        ultimaInseminacion: toIsoDate(raw["ultima_inseminacion"]),
-        totalIa: toInt(raw["total_ia"]),
-        diasEnLeche: toInt(raw["dias_en_leche"]),
-        diioMadre: toString(raw["diio_madre"]),
-        padre: toString(raw["padre"]),
-        origen: toString(raw["origen"]),
-        fechaIngreso: toIsoDate(raw["fecha_creado"]),
-        ultimoPesoKg: toNumeric(raw["peso"]),
-        ultimoPesoAt: toIsoDate(raw["fecha_pesaje"]),
-        observaciones: toString(raw["observaciones"]),
+        diio: data.diio,
+        estado: data.estado,
+        tipoGanado: data.tipo_ganado ?? null,
+        fechaNacimiento: data.fecha_nacimiento,
+        estadoReproductivo: data.estado_reproductivo,
+        estadoLeche: data.estado_leche,
+        ultimoParto: data.ultimo_parto,
+        ultimaInseminacion: data.ultima_inseminacion,
+        totalIa: data.total_ia,
+        diasEnLeche: data.dias_en_leche,
+        diioMadre: data.diio_madre,
+        padre: data.padre,
+        origen: data.origen,
+        fechaIngreso: data.fecha_creado,
+        ultimoPesoKg: data.peso,
+        ultimoPesoAt: data.fecha_pesaje,
+        observaciones: data.observaciones,
       },
     });
   }
