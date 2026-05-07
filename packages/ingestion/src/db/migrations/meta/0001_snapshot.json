@@ -1,0 +1,244 @@
+{
+  "id": "77724f81-6fdb-4c7d-a193-fb9407c7b9f1",
+  "prevId": "59daec65-9362-4c16-85db-2c2c28a17e45",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.animales": {
+      "name": "animales",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "diio": {
+          "name": "diio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "estado": {
+          "name": "estado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo_ganado": {
+          "name": "tipo_ganado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fecha_nacimiento": {
+          "name": "fecha_nacimiento",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estado_reproductivo": {
+          "name": "estado_reproductivo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estado_leche": {
+          "name": "estado_leche",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ultimo_parto": {
+          "name": "ultimo_parto",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ultima_inseminacion": {
+          "name": "ultima_inseminacion",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total_ia": {
+          "name": "total_ia",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dias_en_leche": {
+          "name": "dias_en_leche",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diio_madre": {
+          "name": "diio_madre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "padre": {
+          "name": "padre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "origen": {
+          "name": "origen",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fecha_ingreso": {
+          "name": "fecha_ingreso",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ultimo_peso_kg": {
+          "name": "ultimo_peso_kg",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ultimo_peso_at": {
+          "name": "ultimo_peso_at",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "observaciones": {
+          "name": "observaciones",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ingested_at": {
+          "name": "ingested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "source_file": {
+          "name": "source_file",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "animales_diio_unique": {
+          "name": "animales_diio_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "diio"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.inventario_bronze": {
+      "name": "inventario_bronze",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ingest_id": {
+          "name": "ingest_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "source_file": {
+          "name": "source_file",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "row_number": {
+          "name": "row_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingested_at": {
+          "name": "ingested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "inventario_bronze_ingest_id_idx": {
+          "name": "inventario_bronze_ingest_id_idx",
+          "columns": [
+            {
+              "expression": "ingest_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "inventario_bronze_ingested_at_idx": {
+          "name": "inventario_bronze_ingested_at_idx",
+          "columns": [
+            {
+              "expression": "ingested_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

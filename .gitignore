@@ -7,3 +7,10 @@ dist
 .DS_Store
 .turbo
 coverage
+
+# Data del cliente — nunca al repo
+data-agroapp/
+data/
+*.xlsx
+*.xls
+!fixtures/**/*.xlsx
