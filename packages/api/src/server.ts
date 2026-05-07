@@ -1,0 +1,29 @@
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
+import { v1Router } from "./routes/v1.js";
+
+const app = new Hono();
+
+app.get("/health", (c) =>
+  c.json({
+    status: "ok",
+    layer: "ontology",
+    package: "@smartos/api",
+    version: "0.0.1",
+  })
+);
+
+app.route("/api/v1", v1Router);
+
+const port = Number(process.env.PORT ?? 3001);
+
+serve({ fetch: app.fetch, port }, (info) => {
+  console.log(`smartOS API listening on :${info.port}`);
+  console.log(`  GET /health`);
+  console.log(`  GET /api/v1/animales`);
+  console.log(`  GET /api/v1/animales/:diio`);
+  console.log(`  GET /api/v1/proveedores`);
+  console.log(`  GET /api/v1/ventas`);
+  console.log(`  GET /api/v1/alarmas/resguardo-carne`);
+  console.log(`  GET /api/v1/dashboard`);
+});
