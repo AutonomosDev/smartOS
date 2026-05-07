@@ -22,6 +22,13 @@
       "when": 1778172526789,
       "tag": "0002_add_landings",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778174813882,
+      "tag": "0003_add_pesajes",
+      "breakpoints": true
     }
   ]
 }

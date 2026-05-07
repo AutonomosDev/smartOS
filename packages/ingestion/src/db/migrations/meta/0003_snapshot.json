@@ -1,0 +1,575 @@
+{
+  "id": "62d9e766-4453-4462-ac46-bc77c6b47612",
+  "prevId": "79449594-b868-423c-a49e-10242047b1e0",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.animales": {
+      "name": "animales",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "diio": {
+          "name": "diio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "estado": {
+          "name": "estado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo_ganado": {
+          "name": "tipo_ganado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fecha_nacimiento": {
+          "name": "fecha_nacimiento",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estado_reproductivo": {
+          "name": "estado_reproductivo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estado_leche": {
+          "name": "estado_leche",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ultimo_parto": {
+          "name": "ultimo_parto",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ultima_inseminacion": {
+          "name": "ultima_inseminacion",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total_ia": {
+          "name": "total_ia",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dias_en_leche": {
+          "name": "dias_en_leche",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diio_madre": {
+          "name": "diio_madre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "padre": {
+          "name": "padre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "origen": {
+          "name": "origen",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fecha_ingreso": {
+          "name": "fecha_ingreso",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ultimo_peso_kg": {
+          "name": "ultimo_peso_kg",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ultimo_peso_at": {
+          "name": "ultimo_peso_at",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "observaciones": {
+          "name": "observaciones",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ingested_at": {
+          "name": "ingested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "source_file": {
+          "name": "source_file",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "animales_diio_unique": {
+          "name": "animales_diio_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "diio"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.inventario_bronze": {
+      "name": "inventario_bronze",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ingest_id": {
+          "name": "ingest_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "source_file": {
+          "name": "source_file",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "row_number": {
+          "name": "row_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingested_at": {
+          "name": "ingested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "inventario_bronze_ingest_id_idx": {
+          "name": "inventario_bronze_ingest_id_idx",
+          "columns": [
+            {
+              "expression": "ingest_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "inventario_bronze_ingested_at_idx": {
+          "name": "inventario_bronze_ingested_at_idx",
+          "columns": [
+            {
+              "expression": "ingested_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.landings": {
+      "name": "landings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "ingest_id": {
+          "name": "ingest_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "operacion": {
+          "name": "operacion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_file": {
+          "name": "source_file",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gcs_uri": {
+          "name": "gcs_uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_size_bytes": {
+          "name": "file_size_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_md5": {
+          "name": "file_md5",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content_type": {
+          "name": "content_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ingested_at": {
+          "name": "ingested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "landings_ingest_id_idx": {
+          "name": "landings_ingest_id_idx",
+          "columns": [
+            {
+              "expression": "ingest_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pesajes": {
+      "name": "pesajes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "diio": {
+          "name": "diio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fecha_pesaje": {
+          "name": "fecha_pesaje",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "peso_kg": {
+          "name": "peso_kg",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "edad_meses": {
+          "name": "edad_meses",
+          "type": "numeric(5, 1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tipo_ganado": {
+          "name": "tipo_ganado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estado_reproductivo": {
+          "name": "estado_reproductivo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ala_galpon": {
+          "name": "ala_galpon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "corral": {
+          "name": "corral",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "observaciones": {
+          "name": "observaciones",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creado_por": {
+          "name": "creado_por",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ingested_at": {
+          "name": "ingested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "source_file": {
+          "name": "source_file",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "pesajes_diio_fecha_idx": {
+          "name": "pesajes_diio_fecha_idx",
+          "columns": [
+            {
+              "expression": "diio",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "fecha_pesaje",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pesajes_diio_fecha_desc_idx": {
+          "name": "pesajes_diio_fecha_desc_idx",
+          "columns": [
+            {
+              "expression": "diio",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "fecha_pesaje",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pesajes_ala_corral_idx": {
+          "name": "pesajes_ala_corral_idx",
+          "columns": [
+            {
+              "expression": "ala_galpon",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "corral",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pesajes_bronze": {
+      "name": "pesajes_bronze",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ingest_id": {
+          "name": "ingest_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "source_file": {
+          "name": "source_file",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "row_number": {
+          "name": "row_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingested_at": {
+          "name": "ingested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pesajes_bronze_ingest_id_idx": {
+          "name": "pesajes_bronze_ingest_id_idx",
+          "columns": [
+            {
+              "expression": "ingest_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pesajes_bronze_ingested_at_idx": {
+          "name": "pesajes_bronze_ingested_at_idx",
+          "columns": [
+            {
+              "expression": "ingested_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
