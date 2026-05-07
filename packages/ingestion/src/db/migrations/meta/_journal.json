@@ -43,6 +43,13 @@
       "when": 1778178351726,
       "tag": "0005_add_ventas",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778180462571,
+      "tag": "0006_add_bajas",
+      "breakpoints": true
     }
   ]
 }

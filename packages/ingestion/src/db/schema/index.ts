@@ -1,4 +1,6 @@
 export * from "./animales.js";
+export * from "./bajas.js";
+export * from "./bajas-bronze.js";
 export * from "./inventario-bronze.js";
 export * from "./landings.js";
 export * from "./pesajes.js";

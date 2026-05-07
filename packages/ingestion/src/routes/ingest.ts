@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { ingestBajas } from "../services/ingest-bajas.js";
 import { ingestInventario } from "../services/ingest-inventario.js";
 import { ingestPesajes } from "../services/ingest-pesajes.js";
 import { ingestTratamientos } from "../services/ingest-tratamientos.js";
@@ -93,6 +94,26 @@ ingestRouter.post("/ventas", async (c) => {
     return c.json(result, 200);
   } catch (err) {
     console.error("[ingest_ventas_failed]", err);
+    const message = err instanceof Error ? err.message : "unknown_error";
+    return c.json({ error: "ingest_failed", detail: message }, 500);
+  }
+});
+
+ingestRouter.post("/bajas", async (c) => {
+  const form = await c.req.parseBody();
+  const file = await readMultipartFile(form);
+  if (!file) {
+    return c.json(
+      { error: "missing_file", detail: "Send xlsx as multipart field 'file'" },
+      400
+    );
+  }
+
+  try {
+    const result = await ingestBajas(file.buffer, file.name);
+    return c.json(result, 200);
+  } catch (err) {
+    console.error("[ingest_bajas_failed]", err);
     const message = err instanceof Error ? err.message : "unknown_error";
     return c.json({ error: "ingest_failed", detail: message }, 500);
   }
