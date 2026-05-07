@@ -50,6 +50,13 @@
       "when": 1778180462571,
       "tag": "0006_add_bajas",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778183000000,
+      "tag": "0007_consistency_views",
+      "breakpoints": true
     }
   ]
 }
