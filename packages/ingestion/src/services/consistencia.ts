@@ -66,6 +66,24 @@ const CHECKS: {
     view: "v_inventario_stale",
     sampleCols: "diio, tipo_ganado, ultimo_peso_kg, ultimo_peso_at, dias_sin_pesaje",
   },
+  {
+    name: "edad_imposible",
+    description:
+      "Animales adultos (peso > 200 kg) declarados como ternero (edad <6 meses) — fecha_nacimiento dudosa en AgroApp",
+    severity: "medium",
+    view: "v_edad_imposible",
+    sampleCols:
+      "diio, tipo_ganado, fecha_nacimiento, ultimo_peso_kg, edad_meses_aprox, origen",
+  },
+  {
+    name: "reclamables",
+    description:
+      "Animales con GDP estabulado <1.2 kg/d (≥3 pesajes, ≥60 días). Base para reclamo al proveedor.",
+    severity: "high",
+    view: "v_reclamables",
+    sampleCols:
+      "proveedor, diio, dias, peso_ingreso, peso_actual, kg_ganados, gdp, severidad",
+  },
 ];
 
 export async function buildConsistenciaReport(): Promise<ConsistenciaReport> {
