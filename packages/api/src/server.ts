@@ -1,5 +1,7 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { requireAuth } from "./middleware/auth.js";
+import { rateLimit } from "./middleware/rate-limit.js";
 import { agentActionsRouter } from "./routes/agent-actions.js";
 import { chatRouter } from "./routes/chat.js";
 import { chatStreamRouter } from "./routes/chat-stream.js";
@@ -18,11 +20,38 @@ app.get("/health", (c) =>
   })
 );
 
+// Capa 7 — middlewares de governance
+//   - rateLimit aplica a TODOS los endpoints (incluido /api/v1)
+//   - requireAuth aplica solo a endpoints que pueden mutar
+//     o que generan costo LLM
+app.use("*", rateLimit({ scope: "global", limit: 120 }));
+
 app.route("/api/v1", v1Router);
-app.route("/chat", chatRouter);
-app.route("/chat/stream", chatStreamRouter);
-app.route("/chat/sesiones", sesionesRouter);
-app.route("/agent/actions", agentActionsRouter);
+
+// Endpoints que generan costo LLM o mutaciones → requieren auth
+const protectedChatRoutes = new Hono();
+protectedChatRoutes.use("*", requireAuth);
+protectedChatRoutes.use("*", rateLimit({ scope: "chat", limit: 30 }));
+protectedChatRoutes.route("/", chatRouter);
+app.route("/chat", protectedChatRoutes);
+
+const protectedStreamRoutes = new Hono();
+protectedStreamRoutes.use("*", requireAuth);
+protectedStreamRoutes.use("*", rateLimit({ scope: "chat-stream", limit: 30 }));
+protectedStreamRoutes.route("/", chatStreamRouter);
+app.route("/chat/stream", protectedStreamRoutes);
+
+const protectedSesionesRoutes = new Hono();
+protectedSesionesRoutes.use("*", requireAuth);
+protectedSesionesRoutes.use("*", rateLimit({ scope: "sesiones", limit: 60 }));
+protectedSesionesRoutes.route("/", sesionesRouter);
+app.route("/chat/sesiones", protectedSesionesRoutes);
+
+const protectedActionsRoutes = new Hono();
+protectedActionsRoutes.use("*", requireAuth);
+protectedActionsRoutes.use("*", rateLimit({ scope: "actions", limit: 30 }));
+protectedActionsRoutes.route("/", agentActionsRouter);
+app.route("/agent/actions", protectedActionsRoutes);
 
 const port = Number(process.env.PORT ?? 3001);
 
