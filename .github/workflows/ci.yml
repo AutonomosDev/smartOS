@@ -21,3 +21,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm -r typecheck
+
+      - name: Run unit tests (no LLM, no DB)
+        run: pnpm -F @smartos/api test -- src/__tests__/router.test.ts
