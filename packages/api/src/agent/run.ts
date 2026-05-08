@@ -1,8 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { pickModel, type RouteDecision } from "./router.js";
 import { SYSTEM_PROMPT } from "./system-prompt.js";
 import { CATTLE_TOOLS, executeTool } from "./tools.js";
 
-const MODEL = process.env.SMARTOS_CHAT_MODEL ?? "claude-sonnet-4-5";
 const MAX_TURNS = 8;
 
 export type ChatRequest = {
@@ -15,12 +15,23 @@ export type ToolCallTrace = {
   resultPreview: string;
 };
 
+export type Usage = {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreateTokens: number;
+};
+
 export type ChatResponse = {
   reply: string;
   toolCalls: ToolCallTrace[];
   turns: number;
   model: string;
+  tier: RouteDecision["tier"];
+  routeReason: string;
   stopReason: string;
+  usage: Usage;
+  cacheHit: boolean;
 };
 
 let client: Anthropic | null = null;
@@ -60,19 +71,44 @@ export async function runAgent(req: ChatRequest): Promise<ChatResponse> {
   let turns = 0;
   let stopReason = "max_turns";
   let finalText = "";
+  const usage: Usage = {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreateTokens: 0,
+  };
+
+  // Decisión de tier por la última pregunta del user
+  const route = pickModel(req.messages);
 
   while (turns < MAX_TURNS) {
     turns += 1;
 
     const response = await anthropic.messages.create({
-      model: MODEL,
+      model: route.model,
       max_tokens: 2048,
-      system: SYSTEM_PROMPT,
-      tools: CATTLE_TOOLS as unknown as Anthropic.Tool[],
+      // Prompt caching: system y último tool marcados como ephemeral.
+      // Anthropic cachea esos bloques 5 min → 90% ahorro en hits.
+      system: [
+        {
+          type: "text",
+          text: SYSTEM_PROMPT,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      tools: CATTLE_TOOLS.map((t, i) =>
+        i === CATTLE_TOOLS.length - 1
+          ? { ...t, cache_control: { type: "ephemeral" as const } }
+          : t
+      ) as unknown as Anthropic.Tool[],
       messages,
     });
 
     stopReason = response.stop_reason ?? "unknown";
+    usage.inputTokens += response.usage.input_tokens ?? 0;
+    usage.outputTokens += response.usage.output_tokens ?? 0;
+    usage.cacheReadTokens += response.usage.cache_read_input_tokens ?? 0;
+    usage.cacheCreateTokens += response.usage.cache_creation_input_tokens ?? 0;
 
     // Recolectar texto + tool_use de la respuesta
     const assistantBlocks: Anthropic.ContentBlock[] = response.content;
@@ -129,7 +165,11 @@ export async function runAgent(req: ChatRequest): Promise<ChatResponse> {
     reply: finalText || "(sin respuesta de texto)",
     toolCalls,
     turns,
-    model: MODEL,
+    model: route.model,
+    tier: route.tier,
+    routeReason: route.reason,
     stopReason,
+    usage,
+    cacheHit: usage.cacheReadTokens > 0,
   };
 }

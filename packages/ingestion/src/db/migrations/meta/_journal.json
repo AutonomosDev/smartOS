@@ -71,6 +71,13 @@
       "when": 1778195000000,
       "tag": "0009_gold_views",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778199505855,
+      "tag": "0010_add_chat_sesiones",
+      "breakpoints": true
     }
   ]
 }
