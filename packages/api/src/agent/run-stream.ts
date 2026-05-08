@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { type Artifact, mapToolResultToArtifact } from "./artifact-mapper.js";
 import { SYSTEM_PROMPT } from "./system-prompt.js";
 import { CATTLE_TOOLS, executeTool } from "./tools.js";
 
@@ -9,12 +10,20 @@ export type ChatRequest = {
   messages: { role: "user" | "assistant"; content: string }[];
 };
 
-/** Eventos que emite el stream al cliente (formato SSE). */
+/**
+ * Eventos que emite el stream al cliente (formato SSE).
+ *
+ * Adapter compat con cliente smartcow chat-panel:
+ *   - tool_use (en vez de tool_call)
+ *   - artifact_block después de tool_result si la tool
+ *     produce data renderizable (dashboard, ranking, etc)
+ */
 export type StreamEvent =
   | { type: "turn_start"; turn: number }
   | { type: "text_delta"; text: string }
-  | { type: "tool_call"; name: string; input: Record<string, unknown> }
+  | { type: "tool_use"; name: string; input: Record<string, unknown> }
   | { type: "tool_result"; name: string; resultPreview: string }
+  | { type: "artifact_block"; artifact: Artifact }
   | {
       type: "done";
       turns: number;
@@ -118,15 +127,23 @@ export async function runAgentStream(
       break;
     }
 
-    // Ejecutar tools y emitir trace
+    // Ejecutar tools, emitir trace + artifact_block adapter (smartcow UI)
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     for (const tu of toolUseBlocks) {
       const input = (tu.input ?? {}) as Record<string, unknown>;
-      await emit({ type: "tool_call", name: tu.name, input });
+      await emit({ type: "tool_use", name: tu.name, input });
       try {
         const result = await executeTool(tu.name, input);
         const preview = previewResult(result);
         await emit({ type: "tool_result", name: tu.name, resultPreview: preview });
+
+        // Adapter para cliente smartcow: si la tool produce data
+        // renderizable, emitir artifact_block paralelo al texto.
+        const artifact = mapToolResultToArtifact(tu.name, result);
+        if (artifact) {
+          await emit({ type: "artifact_block", artifact });
+        }
+
         toolResults.push({
           type: "tool_result",
           tool_use_id: tu.id,
