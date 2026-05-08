@@ -305,6 +305,115 @@ Tickets (orden cronológico)
   AUT-411 Adapter smartOS → smartcow UI (artifact_block)
 ```
 
+## Mapa TEMPLATE vs VERTICAL-CATTLE
+
+```
+Este repo es smartOS (template 7 capas) + vertical
+cattle Mollendo MEZCLADOS por desarrollo iterativo
+con primer cliente. Convive un código genérico
+reusable con código domain-specific.
+
+POR QUÉ NO ESTÁ SPLIT
+─────────────────────────────────────────────────
+Regla A del propio repo: no abstraer hasta tener
+segunda entidad real. Splitear con un solo vertical
+es especulación. Cuando aparezca 2do cliente
+(otro vertical o segunda operación cattle), esta
+tabla guía el split mecánico.
+
+NO TOCAR archivos [TEMPLATE] cuando se trabaja en
+vertical: cualquier cambio impacta al futuro split.
+Si una mejora aplica a ambos → marcar en commit.
+```
+
+```
+PACKAGE / MODULE                                  CLASE
+─────────────────────────────────────────────────
+INFRA RAÍZ
+  .github/workflows/ci.yml                        TEMPLATE
+  docker-compose.yml                              TEMPLATE
+  package.json + pnpm-workspace.yaml              TEMPLATE
+  tsconfig.base.json + .env.example               TEMPLATE
+  CLAUDE.md + .claude/**                          MIXTO
+
+PACKAGES/INGESTION
+  src/server.ts (Hono skeleton)                   TEMPLATE
+  src/storage/gcs.ts                              TEMPLATE
+  src/db/client.ts                                TEMPLATE
+  src/db/schema/landings.ts                       TEMPLATE
+  src/db/migrations/0000_*landings.sql            TEMPLATE
+  src/routes/admin.ts (consistencia framework)    TEMPLATE
+  src/lib/* (helpers genéricos)                   TEMPLATE
+  ───────────────────────────────────────────────
+  src/config/tenancy.ts (AMSA / Mollendo)         VERTICAL
+  src/db/schema/{animales,pesajes,tratamientos,
+    ventas,ventas_animales,bajas,*-bronze}.ts     VERTICAL
+  src/db/migrations/0001..0011 (cattle)           VERTICAL
+  src/parsers/* (HEADER_MAP AgroApp)              VERTICAL
+  src/services/ingest-*.ts                        VERTICAL
+  src/services/consistencia.ts (CHECKS cattle)    VERTICAL
+  src/routes/ingest.ts (cattle endpoints)         VERTICAL
+  data-agroapp/                                   VERTICAL (.gitignore)
+
+PACKAGES/API
+  src/server.ts (Hono + middlewares mounted)      TEMPLATE
+  src/middleware/auth.ts (Bearer)                 TEMPLATE
+  src/middleware/rate-limit.ts                    TEMPLATE
+  src/agent/run.ts (loop sync genérico)           TEMPLATE
+  src/agent/run-stream.ts (loop SSE + StreamEvent
+    shape)                                        TEMPLATE
+  src/agent/router.ts (tier router)               TEMPLATE
+  src/services/cache.ts                           TEMPLATE
+  src/services/sesiones.ts                        TEMPLATE
+  src/services/audit.ts                           TEMPLATE
+  src/services/memory.ts                          TEMPLATE
+  src/routes/chat.ts (sync)                       TEMPLATE
+  src/routes/chat-stream.ts (SSE)                 TEMPLATE
+  src/routes/sesiones.ts                          TEMPLATE
+  src/routes/agent-actions.ts (las 7 reglas)      TEMPLATE
+  src/__tests__/ (middleware + servicios + router
+    + agent-actions + cache + sesiones)           TEMPLATE
+  ───────────────────────────────────────────────
+  src/ontology/* (queries cattle)                 VERTICAL
+  src/routes/v1.ts (REST cattle)                  VERTICAL
+  src/agent/tools.ts (10 CATTLE_TOOLS)            VERTICAL
+  src/agent/tools-write.ts (registrar_pesaje, etc.) VERTICAL
+  src/agent/system-prompt.ts (cattle prompt)      VERTICAL
+  src/agent/artifact-mapper.ts (7 mappers cattle) VERTICAL
+  src/__tests__/artifact-mapper.test.ts           VERTICAL
+  src/schemas/* (Zod cattle endpoints)            VERTICAL
+```
+
+```
+ARQUETIPOS PARA EL FUTURO SPLIT
+─────────────────────────────────────────────────
+Cuando se haga el split (NO ahora):
+  → mover los [VERTICAL] a repo nuevo
+    AutonomosDev/smartcow-backend
+  → smartOS queda solo con [TEMPLATE] + stubs
+    example-* que demuestren cada patrón
+  → preservar git history haciendo
+    push HEAD a smartcow-backend antes del strip
+  → Linear: project nuevo "smartcow-backend"
+    dentro de initiative SmartCow, mover
+    milestone "SmartCow × Template" + AUT-411
+    al project nuevo
+  → smartOS project en Linear queda solo con
+    milestones template (Capas 1-7)
+
+DETONANTE
+─────────────────────────────────────────────────
+Hacer el split SOLO cuando se confirme:
+  → 2do cliente cattle con operación distinta a
+    Mollendo (segunda tenancy real), O
+  → 1er vertical NO-cattle comprometido
+    (educación, salud, manufactura, etc.)
+
+Hasta que uno de los dos pase, este repo queda
+unificado y la tabla de arriba es la fuente de
+verdad para la separación conceptual.
+```
+
 ## Conocimiento de Mollendo (cliente piloto)
 
 ```
