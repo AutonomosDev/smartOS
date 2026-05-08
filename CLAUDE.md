@@ -5,9 +5,8 @@ Guía operativa para Claude Code en este repo. Lee primero este archivo.
 ## Qué es smartOS
 
 Template multi-vertical para apps con IA estructurado en 7 capas estilo Palantir.
-Hoy implementada **Capa 1 — Ingestion Layer** end-to-end, validada con data real
-de **Mollendo** (operación Los Lagos de Agrícola Mollendo SA / AMSA), feedlot de
-novillos en Chile.
+Las **7 capas implementadas end-to-end**, validadas con data real de **Mollendo**
+(operación Los Lagos de Agrícola Mollendo SA / AMSA), feedlot de novillos en Chile.
 
 ```
 LLM solo en bordes (entrada / salida).
@@ -18,12 +17,19 @@ Backend = lenguaje máquina (SQL, código, schemas tipados).
 
 ```
 Capa 1 — Ingestion Layer       ✅ E2E validado con Mollendo
-Capa 2 — Storage Layer         🟡 Postgres puro (TimescaleDB pendiente)
-Capa 3 — Transformation        🟡 Vistas SQL Gold/consistencia (parcial)
-Capa 4 — Ontology              ⏳ pendiente
-Capa 5 — Brains/Reasoning      ⏳ pendiente
-Capa 6 — Action                ⏳ pendiente
-Capa 7 — Governance            ⏳ pendiente
+Capa 2 — Storage Layer         ✅ Postgres + landings + Bronze/Silver
+Capa 3 — Transformation        ✅ Vistas Gold + consistencia + admin
+Capa 4 — Ontology              ✅ packages/api — REST /api/v1/*
+Capa 5 — Brains                ✅ Chat agent Anthropic SDK + 10 tools
+                                  + caching + memoria + sesiones
+                                  + tier router (haiku/sonnet)
+Capa 6 — Action                ✅ Mutations con dry-run + audit (7 reglas)
+Capa 7 — Governance            ✅ Bearer auth + rate limit por scope
+
+Adapter UI                     ✅ smartOS → smartcow chat-panel.tsx
+                                  Emite artifact_block en /chat/stream
+                                  con shape SSEArtifact compatible
+                                  (AUT-411, commit 39f613a)
 ```
 
 ## Reglas críticas
@@ -79,23 +85,39 @@ CI            GitHub Actions (typecheck en PR)
 ## Comandos
 
 ```bash
-# Setup inicial (5 comandos)
+# Setup inicial
 pnpm install
-cp .env.example .env
+cp packages/ingestion/.env.example packages/ingestion/.env
+cp packages/api/.env.example       packages/api/.env   # ANTHROPIC_API_KEY
 docker compose up -d
-pnpm -F @smartos/ingestion dev    # server en :3000
-curl http://localhost:3000/health
 
-# Ingestión
+# Ingestion (Capa 1) — :3000
+pnpm -F @smartos/ingestion dev
+curl http://localhost:3000/health
 curl -X POST http://localhost:3000/ingest/inventario       -F "file=@xxx.xlsx"
 curl -X POST http://localhost:3000/ingest/pesajes          -F "file=@xxx.xlsx"
 curl -X POST http://localhost:3000/ingest/tratamientos     -F "file=@xxx.xlsx"
 curl -X POST http://localhost:3000/ingest/ventas           -F "file=@xxx.xlsx"
 curl -X POST http://localhost:3000/ingest/ventas-detalle   -F "file=@xxx.xlsx"
 curl -X POST http://localhost:3000/ingest/bajas            -F "file=@xxx.xlsx"
-
-# Admin
 curl http://localhost:3000/admin/consistencia              # 7 checks
+
+# API (Capas 4 + 5 + 6 + 7) — :3001
+pnpm -F @smartos/api dev
+curl http://localhost:3001/health
+curl http://localhost:3001/api/v1/dashboard
+curl http://localhost:3001/api/v1/animales
+curl http://localhost:3001/api/v1/proveedores
+curl http://localhost:3001/api/v1/ventas
+curl http://localhost:3001/api/v1/alarmas/resguardo-carne
+# Chat agent (SSE) — emite artifact_block compat smartcow
+curl -N -X POST http://localhost:3001/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"dame el dashboard de Mollendo"}]}'
+# Mutations con dry-run + audit
+curl -X POST http://localhost:3001/agent/actions \
+  -H "Content-Type: application/json" \
+  -d '{"action":"<nombre>","input":{...},"dryRun":true}'
 
 # DB
 pnpm -F @smartos/ingestion db:generate    # genera migration desde schema TS
@@ -104,6 +126,7 @@ pnpm -F @smartos/ingestion db:studio      # UI de Drizzle Studio
 
 # Verificación
 pnpm -r typecheck                          # typecheck workspace completo
+pnpm -F @smartos/api test                  # vitest (80 tests)
 ```
 
 ## Arquitectura — Capa 1 (única implementada)
@@ -130,20 +153,46 @@ response JSON con counts + errors + alarms
 ```
 smartOS/
 ├── .github/workflows/ci.yml
-├── packages/ingestion/
-│   ├── drizzle.config.ts
-│   ├── src/
-│   │   ├── server.ts              Hono + montaje routes
-│   │   ├── config/tenancy.ts      AMSA / Los Lagos
-│   │   ├── db/
-│   │   │   ├── client.ts          drizzle + pool
-│   │   │   ├── schema/            13 archivos de tablas
-│   │   │   └── migrations/        9 migrations (.sql)
-│   │   ├── parsers/               1 schema Zod + 1 xlsx parser por tipo
-│   │   ├── services/              1 ingest-* por tipo + consistencia
-│   │   ├── routes/                ingest.ts + admin.ts
-│   │   └── storage/gcs.ts         cliente fake-gcs compatible
-│   └── package.json
+├── packages/
+│   ├── ingestion/                 Capas 1-3 (puerto :3000)
+│   │   ├── drizzle.config.ts
+│   │   ├── src/
+│   │   │   ├── server.ts              Hono + montaje routes
+│   │   │   ├── config/tenancy.ts      AMSA / Los Lagos
+│   │   │   ├── db/
+│   │   │   │   ├── client.ts          drizzle + pool
+│   │   │   │   ├── schema/            tablas Bronze/Silver
+│   │   │   │   └── migrations/        SQL versionados
+│   │   │   ├── parsers/               1 Zod + 1 xlsx por tipo
+│   │   │   ├── services/              ingest-* + consistencia
+│   │   │   ├── routes/                ingest.ts + admin.ts
+│   │   │   └── storage/gcs.ts         cliente fake-gcs compat
+│   │   └── package.json
+│   └── api/                       Capas 4-7 (puerto :3001)
+│       ├── src/
+│       │   ├── server.ts              Hono + middlewares Capa 7
+│       │   ├── middleware/
+│       │   │   ├── auth.ts            Bearer token (SMARTOS_API_TOKEN)
+│       │   │   └── rate-limit.ts      por scope
+│       │   ├── ontology/              Capa 4 — entidades + queries
+│       │   ├── routes/
+│       │   │   ├── v1.ts              REST /api/v1/* (read-only)
+│       │   │   ├── chat.ts            POST /chat (sync)
+│       │   │   ├── chat-stream.ts     POST /chat/stream (SSE)
+│       │   │   ├── sesiones.ts        POST /chat/sesiones (multi-turn)
+│       │   │   └── agent-actions.ts   POST /agent/actions (mutations)
+│       │   ├── agent/
+│       │   │   ├── tools.ts           10 read tools (CATTLE_TOOLS)
+│       │   │   ├── tools-write.ts     write tools (Capa 6)
+│       │   │   ├── system-prompt.ts   prompt + ontology context
+│       │   │   ├── router.ts          tier router haiku/sonnet
+│       │   │   ├── run.ts             loop sync (sin streaming)
+│       │   │   ├── run-stream.ts      loop SSE (emite artifact_block)
+│       │   │   └── artifact-mapper.ts adapter → smartcow UI
+│       │   ├── schemas/               Zod por endpoint
+│       │   ├── services/              caché, sesiones, memoria, audit
+│       │   └── __tests__/             vitest (80 tests)
+│       └── package.json
 ├── docker-compose.yml             postgres + fake-gcs
 ├── data-agroapp/                  data del cliente (.gitignore)
 ├── README.md
@@ -228,15 +277,32 @@ es cara.
 ## Linear
 
 ```
-Project       smartOS — Template Multi-Vertical
-              linear.app/autonomos-lab/project/smartos-...
-Milestone     Capa 1 — Ingestion Layer
-Tickets       AUT-397 Día 0 setup
-              AUT-398 Slice 1 inventario
-              AUT-399 Slice 4 pesajes
-              AUT-400 Slice 5 tratamientos
-              AUT-401 Slice 6 ventas
-              AUT-402 Slice 7 bajas
+Project       smartOS  (a98e9696-def5-466c-97bb-90f9b9ea3ea2)
+Team          Autonomos Lab (b0184c23-...)
+
+Milestones implementadas
+  Capa 1 — Ingestion Layer       (bb0e4f0a-...)
+  Capa 2 — Storage Layer         (3e5d0313-...)
+  Capa 3 — Transformation Layer  (ccb88f72-...)
+  Capa 4 — Ontology              (9acffcbc-...)
+  Capa 5 — Brains                (c08939bc-...)
+  Capa 6 — Action                (c607eb2b-...)
+  Capa 7 — Governance            (3ccb0dcd-...)
+  SmartCow × Template — Vertical Agro (04de2966-...)
+
+Tickets (orden cronológico)
+  AUT-397 Día 0 setup
+  AUT-398 Slice 1 inventario
+  AUT-399 Slice 4 pesajes
+  AUT-400 Slice 5 tratamientos
+  AUT-401 Slice 6 ventas
+  AUT-402 Slice 7 bajas
+  ...    Capas 2-3 vistas Gold + admin
+  ...    Capa 4 packages/api ontology
+  ...    Capa 5 chat agent + caching + sesiones
+  ...    Capa 6 mutations dry-run + audit
+  ...    Capa 7 Bearer auth + rate limit
+  AUT-411 Adapter smartOS → smartcow UI (artifact_block)
 ```
 
 ## Conocimiento de Mollendo (cliente piloto)

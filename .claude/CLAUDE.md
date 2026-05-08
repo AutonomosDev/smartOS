@@ -8,20 +8,33 @@ La documentación primaria está en `/CLAUDE.md` raíz.
 Antes de cualquier implementación:
 
 1. ¿Existe ya algo similar?
-   `find packages/ingestion/src -name "*<concepto>*"`
+   `find packages/{ingestion,api}/src -name "*<concepto>*"`
    Si existe → leerlo primero, no duplicar.
 
 2. ¿Toca zona congelada? (ver `rules/frozen-zones.md`)
    STOP → reportar al usuario antes de actuar.
 
 3. ¿Hay un patrón existente para esto?
-   `grep -r "<patrón>" packages/ingestion/src`
+   `grep -r "<patrón>" packages/{ingestion,api}/src`
    Antes de inventar nada nuevo.
 
 4. ¿Es S/M/L?
    - S (<30 min, 1-2 archivos): directo
    - M (1-3 horas, 3-8 archivos): con plan corto
    - L (>3 horas, multi-domain): plan completo + confirmación
+
+## Qué package tocar
+
+```
+ingestion (puerto :3000)   Capas 1-3 — xlsx → Bronze → Silver → Gold
+api       (puerto :3001)   Capas 4-7 — REST + chat agent + actions
+
+Si la tarea involucra:
+  parser xlsx, ETL, vistas SQL, admin/consistencia    → ingestion
+  endpoint REST nuevo (read), tool nueva del agente,
+  mutation con dry-run, middleware auth/rate limit    → api
+  cambio de shape de artifact_block emitido al UI     → api/agent/artifact-mapper.ts
+```
 
 ## Patrón de slice nuevo (cuando entra tipo de archivo de AgroApp)
 
@@ -83,13 +96,43 @@ Patrón:
    src/services/consistencia.ts CHECKS array
 ```
 
+## Patrón de tool nueva del agente (Capa 5)
+
+Cuando agregás una read tool al chat agent:
+
+```
+1 → packages/api/src/agent/tools.ts
+    → push a CATTLE_TOOLS con shape Anthropic
+    → handler en EXECUTORS map
+2 → si la tool produce data renderizable:
+    packages/api/src/agent/artifact-mapper.ts
+    → agregar mapper + entry en switch dispatcher
+    → smartcow chat-panel renderea automático
+3 → packages/api/src/__tests__/<tool>.test.ts
+    + extender artifact-mapper.test.ts
+4 → typecheck + vitest + E2E con curl /chat/stream
+5 → commit + Linear
+```
+
+Para write tools (Capa 6) usar `tools-write.ts` + `routes/agent-actions.ts`
+con dry-run + audit obligatorio.
+
 ## Verificación obligatoria antes de commit
 
 ```bash
-pnpm typecheck                    # verde
+pnpm -r typecheck                 # verde
+pnpm -F @smartos/api test         # 80 tests pass
 docker compose ps                 # postgres + fake-gcs running
+
+# Ingestion
 curl localhost:3000/health        # 200
-curl /admin/consistencia          # checks correctos
+curl localhost:3000/admin/consistencia
+
+# API
+curl localhost:3001/health
+curl -N -X POST localhost:3001/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"dame el dashboard"}]}' | head
 ```
 
 ## NO hacer
@@ -124,7 +167,16 @@ Cuando un dato parece raro (GDP > 2, edad imposible, peso negativo):
 ```
 Project       a98e9696-def5-466c-97bb-90f9b9ea3ea2
 Team          Autonomos Lab (b0184c23-...)
-Milestone     Capa 1 — Ingestion Layer (bb0e4f0a-...)
+
+Milestones por capa
+  Capa 1 Ingestion       bb0e4f0a-8ac2-446c-a350-36a941a81127
+  Capa 2 Storage         3e5d0313-80e4-4a35-b4d6-c617c1e8391f
+  Capa 3 Transformation  ccb88f72-b8e2-4714-9cc6-b41ed08d1a68
+  Capa 4 Ontology        9acffcbc-96b2-43be-b251-dc3903003ab5
+  Capa 5 Brains          c08939bc-8765-4bce-88ac-adb80e84b0d0
+  Capa 6 Action          c607eb2b-41c7-4384-91af-566a4de94db5
+  Capa 7 Governance      3ccb0dcd-afcc-43a9-b28d-09112d96262f
+  SmartCow × Template    04de2966-9301-440d-941f-f2bfc506f72c
 ```
 
 Crear ticket por slice nuevo. Cerrar con commit hash + DOD.
